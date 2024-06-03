@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/slz-app', {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
+    await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
