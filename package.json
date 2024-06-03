@@ -2,7 +2,7 @@
   "name": "slz-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "node backend/index.js",
+    "start": "node backend/app.js",
     "heroku-postbuild": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
