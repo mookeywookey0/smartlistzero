@@ -3,20 +3,22 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
+const port = process.env.PORT || 3000; // Use the PORT environment variable
+
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
-const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
+const DailyLog = require('./models/DailyLog');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/fub_data', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-app.use(cors());  // Enable CORS for all routes
+app.use(cors());
 app.use(bodyParser.json());
 
 // API routes
@@ -154,12 +156,11 @@ schedule.scheduleJob('0 4 * * *', async () => {
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // The "catchall" handler: for any request that doesn't
-// match one above, send back the React's index.html file.
+// match one above, send back React's index.html file.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
-const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
