@@ -1,8 +1,7 @@
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('path'); // Ensure path is required before dotenv
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
