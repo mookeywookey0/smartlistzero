@@ -1,12 +1,21 @@
+const path = require('path'); // Ensure 'path' is required at the top
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
-const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
+const {
+  getAgentSmartListCounts,
+  fetchAgents,
+  fetchSmartLists,
+  fetchDailyLogs,
+  saveSelections,
+  fetchSelections,
+  saveDailyLog,
+  getDailyRankings
+} = require('./fetchData');
 const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
 
 const app = express();
