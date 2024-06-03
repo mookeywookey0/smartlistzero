@@ -1,17 +1,23 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const path = require('path');
-const app = express();
-const port = process.env.PORT || 3000; // Use the PORT environment variable
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
-const DailyLog = require('./models/DailyLog');
+const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
 
-// Connect to MongoDB
-const connectDB = require('./db');
-connectDB();
+const app = express();
+const port = process.env.PORT || 3000;
+
+// MongoDB connection
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -150,8 +156,7 @@ schedule.scheduleJob('0 4 * * *', async () => {
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
+// The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
