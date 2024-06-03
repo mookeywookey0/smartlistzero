@@ -4,19 +4,14 @@ const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000; // Use the PORT environment variable
-
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
 const DailyLog = require('./models/DailyLog');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/fub_data', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const connectDB = require('./db');
+connectDB();
 
 app.use(cors());
 app.use(bodyParser.json());
