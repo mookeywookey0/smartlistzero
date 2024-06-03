@@ -1,12 +1,24 @@
 {
-  "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+  "name": "slz-app",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node backend/index.js",
+    "heroku-postbuild": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.12.3",
+    "axios": "^0.21.1",
     "chart.js": "^4.1.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-csv": "^2.2.2",
     "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+  },
+  "engines": {
+    "node": "14.x"
   }
 }
