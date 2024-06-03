@@ -8,24 +8,13 @@ const schedule = require('node-schedule');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
 const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
 
-const port = process.env.PORT || 3000;
-
 // Connect to MongoDB
-const connectDB = async () => {
-  try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log('MongoDB connected');
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
-  }
-};
-
-connectDB();
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 app.use(cors());  // Enable CORS for all routes
 app.use(bodyParser.json());
@@ -162,14 +151,15 @@ schedule.scheduleJob('0 4 * * *', async () => {
 });
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'frontend/build')));
+app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back the React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
