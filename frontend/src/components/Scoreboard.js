@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+
 const Scoreboard = () => {
   const [rankings, setRankings] = useState({ bestAgents: [], worstAgents: [] });
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ const Scoreboard = () => {
   useEffect(() => {
     const fetchRankings = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/daily-rankings');
+        const response = await axios.get(`${API_BASE_URL}/api/daily-rankings`);
         if (response.data && response.data.bestAgents && response.data.worstAgents) {
           setRankings(response.data);
         }

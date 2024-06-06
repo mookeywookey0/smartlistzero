@@ -5,6 +5,8 @@ import { CSVLink } from 'react-csv';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+
 const DailyLogTable = () => {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [smartListMap, setSmartListMap] = useState({});
@@ -14,7 +16,7 @@ const DailyLogTable = () => {
   useEffect(() => {
     const fetchDailyLogs = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/daily-logs');
+        const response = await axios.get(`${API_BASE_URL}/api/daily-logs`);
         setDailyLogs(response.data);
       } catch (error) {
         console.error('Error fetching daily logs:', error);
@@ -23,7 +25,7 @@ const DailyLogTable = () => {
 
     const fetchSmartLists = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/smartlists');
+        const response = await axios.get(`${API_BASE_URL}/api/smartlists`);
         setSmartListMap(response.data);
       } catch (error) {
         console.error('Error fetching smart lists:', error);
@@ -42,7 +44,7 @@ const DailyLogTable = () => {
   const handleClearLogs = async () => {
     if (window.confirm('Are you sure you want to clear the daily logs?')) {
       try {
-        await axios.delete('http://localhost:3000/api/daily-logs');
+        await axios.delete(`${API_BASE_URL}/api/daily-logs`);
         setDailyLogs([]);
       } catch (error) {
         console.error('Error clearing daily logs:', error);
