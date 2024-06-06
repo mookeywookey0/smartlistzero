@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import 'tailwindcss/tailwind.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+
 const SelectionComponent = () => {
   const [agents, setAgents] = useState([]);
   const [smartLists, setSmartLists] = useState([]);
@@ -17,10 +19,11 @@ const SelectionComponent = () => {
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/users');
+        const response = await axios.get(`${API_BASE_URL}/api/users`);
         const sortedAgents = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
-        setAgents(sortedAgents.map(([id, name]) => ({ value: id, label: name })));
-        return sortedAgents;
+        const agentOptions = sortedAgents.map(([id, name]) => ({ value: id, label: name }));
+        setAgents(agentOptions);
+        return agentOptions;
       } catch (error) {
         console.error('Error fetching agents:', error);
       }
@@ -28,31 +31,38 @@ const SelectionComponent = () => {
 
     const fetchSmartLists = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/smartlists');
+        const response = await axios.get(`${API_BASE_URL}/api/smartlists`);
         const sortedSmartLists = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
-        setSmartLists(sortedSmartLists.map(([id, name]) => ({ value: id, label: name })));
-        return sortedSmartLists;
+        const smartListOptions = sortedSmartLists.map(([id, name]) => ({ value: id, label: name }));
+        setSmartLists(smartListOptions);
+        return smartListOptions;
       } catch (error) {
         console.error('Error fetching smart lists:', error);
       }
     };
 
-    const fetchSelections = async (agents, smartLists) => {
+    const fetchSelections = async (agentOptions, smartListOptions) => {
       try {
-        const response = await axios.get('http://localhost:3000/api/get-selections');
+        const response = await axios.get(`${API_BASE_URL}/api/get-selections`);
         const selections = response.data;
 
-        setSelectedAgents(selections.agentIds.map(id => ({ value: id, label: agents.find(agent => agent[0] === id)?.[1] })));
-        setSelectedSmartLists(selections.smartListIds.map(id => ({ value: id, label: smartLists.find(smartList => smartList[0] === id)?.[1] })));
+        const selectedAgentOptions = selections.agentIds.map(id => agentOptions.find(agent => agent.value === id)).filter(Boolean);
+        const selectedSmartListOptions = selections.smartListIds.map(id => smartListOptions.find(smartList => smartList.value === id)).filter(Boolean);
+
+        console.log('Fetched and set selected agents:', selectedAgentOptions);
+        console.log('Fetched and set selected smart lists:', selectedSmartListOptions);
+
+        setSelectedAgents(selectedAgentOptions);
+        setSelectedSmartLists(selectedSmartListOptions);
       } catch (error) {
         console.error('Error fetching selections:', error);
       }
     };
 
     const fetchData = async () => {
-      const agents = await fetchAgents();
-      const smartLists = await fetchSmartLists();
-      await fetchSelections(agents, smartLists);
+      const agentOptions = await fetchAgents();
+      const smartListOptions = await fetchSmartLists();
+      await fetchSelections(agentOptions, smartListOptions);
       setLoading(false);
     };
 
@@ -61,7 +71,7 @@ const SelectionComponent = () => {
 
   const handleSelection = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/selected-counts', {
+      const response = await axios.post(`${API_BASE_URL}/api/selected-counts`, {
         agentIds: selectedAgents.map(agent => agent.value),
         smartListIds: selectedSmartLists.map(smartList => smartList.value)
       });
@@ -75,7 +85,7 @@ const SelectionComponent = () => {
 
   const handleSaveSelections = async () => {
     try {
-      await axios.post('http://localhost:3000/api/save-selections', {
+      await axios.post(`${API_BASE_URL}/api/save-selections`, {
         agentIds: selectedAgents.map(agent => agent.value),
         smartListIds: selectedSmartLists.map(smartList => smartList.value),
       });
