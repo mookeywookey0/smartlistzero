@@ -56,6 +56,10 @@ const DailyLogTable = () => {
     navigate('/');
   };
 
+  const handleGoToScoreboard = () => {
+    navigate('/scoreboard');
+  };
+
   const data = {
     labels: dailyLogs.map(log => log.agentName),
     datasets: [
@@ -82,6 +86,12 @@ const DailyLogTable = () => {
               className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-300"
             >
               Back to Selection
+            </button>
+            <button
+              onClick={handleGoToScoreboard}
+              className="px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
+            >
+              Go to Scoreboard
             </button>
             <button
               onClick={handleClearLogs}
