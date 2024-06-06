@@ -17,50 +17,47 @@ const SelectionComponent = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch agents
-const fetchAgents = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/api/users`);
-    const sortedAgents = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
-    const agentOptions = sortedAgents.map(([id, name]) => ({ value: id, label: name }));
-    setAgents(agentOptions);
-    return agentOptions;
-  } catch (error) {
-    console.error('Error fetching agents:', error);
-  }
-};
+    const fetchAgents = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/users`);
+        const sortedAgents = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
+        const agentOptions = sortedAgents.map(([id, name]) => ({ value: id, label: name }));
+        setAgents(agentOptions);
+        return agentOptions;
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+      }
+    };
 
-// Fetch smart lists
-const fetchSmartLists = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/api/smartlists`);
-    const sortedSmartLists = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
-    const smartListOptions = sortedSmartLists.map(([id, name]) => ({ value: id, label: name }));
-    setSmartLists(smartListOptions);
-    return smartListOptions;
-  } catch (error) {
-    console.error('Error fetching smart lists:', error);
-  }
-};
+    const fetchSmartLists = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/smartlists`);
+        const sortedSmartLists = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
+        const smartListOptions = sortedSmartLists.map(([id, name]) => ({ value: id, label: name }));
+        setSmartLists(smartListOptions);
+        return smartListOptions;
+      } catch (error) {
+        console.error('Error fetching smart lists:', error);
+      }
+    };
 
-// Fetch selections
-const fetchSelections = async (agentOptions, smartListOptions) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/api/get-selections`);
-    const selections = response.data;
+    const fetchSelections = async (agentOptions, smartListOptions) => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/get-selections`);
+        const selections = response.data;
 
-    const selectedAgentOptions = selections.agentIds.map(id => agentOptions.find(agent => agent.value === id)).filter(Boolean);
-    const selectedSmartListOptions = selections.smartListIds.map(id => smartListOptions.find(smartList => smartList.value === id)).filter(Boolean);
+        const selectedAgentOptions = selections.agentIds.map(id => agentOptions.find(agent => agent.value === id)).filter(Boolean);
+        const selectedSmartListOptions = selections.smartListIds.map(id => smartListOptions.find(smartList => smartList.value === id)).filter(Boolean);
 
-    console.log('Fetched and set selected agents:', selectedAgentOptions);
-    console.log('Fetched and set selected smart lists:', selectedSmartListOptions);
+        console.log('Fetched and set selected agents:', selectedAgentOptions);
+        console.log('Fetched and set selected smart lists:', selectedSmartListOptions);
 
-    setSelectedAgents(selectedAgentOptions);
-    setSelectedSmartLists(selectedSmartListOptions);
-  } catch (error) {
-    console.error('Error fetching selections:', error);
-  }
-};
+        setSelectedAgents(selectedAgentOptions);
+        setSelectedSmartLists(selectedSmartListOptions);
+      } catch (error) {
+        console.error('Error fetching selections:', error);
+      }
+    };
 
     const fetchData = async () => {
       const agentOptions = await fetchAgents();
