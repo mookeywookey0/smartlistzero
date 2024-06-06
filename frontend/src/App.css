@@ -170,3 +170,17 @@ body, html, #root {
     background-color: #93c5fd; /* Tailwind blue-300 */
     color: #1e3a8a; /* Tailwind blue-900 */
   }
+
+  /* Add this to your CSS file */
+.table-auto {
+  table-layout: auto;
+}
+
+.table-fixed {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}

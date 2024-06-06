@@ -156,6 +156,7 @@ const saveSelections = async (agentIds, smartListIds) => {
   try {
     const selections = { agentIds, smartListIds };
     fs.writeFileSync(SELECTIONS_FILE, JSON.stringify(selections, null, 2), 'utf-8');
+    console.log('Selections saved:', selections);
   } catch (error) {
     console.error(`Error saving selections: ${error.message}`);
     throw error;
@@ -166,6 +167,7 @@ const fetchSelections = async () => {
   try {
     if (fs.existsSync(SELECTIONS_FILE)) {
       const data = fs.readFileSync(SELECTIONS_FILE, 'utf-8');
+      console.log('Fetched selections from file:', data);
       return JSON.parse(data);
     }
     return { agentIds: [], smartListIds: [] };
