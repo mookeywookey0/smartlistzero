@@ -40,6 +40,13 @@ app.post('/api/selected-counts', async (req, res) => {
     const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
     console.log('Returning counts data:', countsData);
 
+    const currentDate = new Date();
+    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999));
+
+    // Delete existing logs for the current date
+    await DailyLog.deleteMany({ date: { $gte: startOfDay, $lte: endOfDay } });
+
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
       const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
       const logEntry = {
@@ -61,10 +68,12 @@ app.post('/api/selected-counts', async (req, res) => {
 
 app.post('/api/save-selections', async (req, res) => {
   const { agentIds, smartListIds } = req.body;
+  console.log('Saving selections:', { agentIds, smartListIds });
   try {
     await saveSelections(agentIds, smartListIds);
     res.json({ success: true });
   } catch (error) {
+    console.error('Error saving selections:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -72,8 +81,10 @@ app.post('/api/save-selections', async (req, res) => {
 app.get('/api/get-selections', async (req, res) => {
   try {
     const selections = await fetchSelections();
+    console.log('Fetched selections:', selections);
     res.json(selections);
   } catch (error) {
+    console.error('Error fetching selections:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -136,6 +147,11 @@ schedule.scheduleJob('0 4 * * *', async () => {
   try {
     const { agentIds, smartListIds } = await fetchSelections();
     const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
+
+    const currentDate = new Date();
+    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+
+    await DailyLog.deleteMany({ date: { $gte: startOfDay } });
 
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
       const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
