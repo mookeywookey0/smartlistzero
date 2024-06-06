@@ -20,6 +20,7 @@ const SelectionComponent = () => {
         const response = await axios.get('http://localhost:3000/api/users');
         const sortedAgents = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
         setAgents(sortedAgents.map(([id, name]) => ({ value: id, label: name })));
+        return sortedAgents;
       } catch (error) {
         console.error('Error fetching agents:', error);
       }
@@ -30,14 +31,28 @@ const SelectionComponent = () => {
         const response = await axios.get('http://localhost:3000/api/smartlists');
         const sortedSmartLists = Object.entries(response.data).sort(([, a], [, b]) => a.localeCompare(b));
         setSmartLists(sortedSmartLists.map(([id, name]) => ({ value: id, label: name })));
+        return sortedSmartLists;
       } catch (error) {
         console.error('Error fetching smart lists:', error);
       }
     };
 
+    const fetchSelections = async (agents, smartLists) => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/get-selections');
+        const selections = response.data;
+
+        setSelectedAgents(selections.agentIds.map(id => ({ value: id, label: agents.find(agent => agent[0] === id)?.[1] })));
+        setSelectedSmartLists(selections.smartListIds.map(id => ({ value: id, label: smartLists.find(smartList => smartList[0] === id)?.[1] })));
+      } catch (error) {
+        console.error('Error fetching selections:', error);
+      }
+    };
+
     const fetchData = async () => {
-      await fetchAgents();
-      await fetchSmartLists();
+      const agents = await fetchAgents();
+      const smartLists = await fetchSmartLists();
+      await fetchSelections(agents, smartLists);
       setLoading(false);
     };
 
@@ -62,7 +77,7 @@ const SelectionComponent = () => {
     try {
       await axios.post('http://localhost:3000/api/save-selections', {
         agentIds: selectedAgents.map(agent => agent.value),
-        smartListIds: selectedSmartLists.map(smartList => smartList.value)
+        smartListIds: selectedSmartLists.map(smartList => smartList.value),
       });
       alert('Selections saved successfully!');
     } catch (error) {
