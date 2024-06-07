@@ -179,37 +179,67 @@ const fetchSelections = async () => {
 
 const getDailyRankings = async () => {
   try {
-    const logs = await fetchDailyLogs();
-    if (!logs.length) {
+    const latestLog = await DailyLog.findOne({}).sort({ date: -1 }); // Fetch the latest log entry
+    if (!latestLog) {
       console.log('No logs found');
       return { bestAgents: [], worstAgents: [] };
     }
 
-    const latestLog = logs[0]; // Get the most recent log
-    console.log('Latest log:', latestLog);
+    const latestDate = new Date(latestLog.date);
+    latestDate.setHours(0, 0, 0, 0);
 
-    if (!latestLog.smartListCounts) {
-      console.error('smartListCounts not found in the latest log');
-      return { bestAgents: [], worstAgents: [] };
-    }
+    const nextDate = new Date(latestDate);
+    nextDate.setDate(latestDate.getDate() + 1);
 
-    const sortedAgents = logs.map(log => ({
-      agentId: log.agentId,
-      agentName: log.agentName,
-      total: log.total
-    })).sort((a, b) => a.total - b.total);
+    // Fetch all logs for the latest date using aggregation
+    const logs = await DailyLog.aggregate([
+      {
+        $match: {
+          date: { $gte: latestDate, $lt: nextDate },
+        },
+      },
+      {
+        $project: {
+          agentId: 1,
+          agentName: 1,
+          smartListCountsArray: { $objectToArray: '$smartListCounts' },
+        },
+      },
+      {
+        $unwind: '$smartListCountsArray',
+      },
+      {
+        $group: {
+          _id: '$agentId',
+          agentName: { $first: '$agentName' },
+          total: { $sum: '$smartListCountsArray.v' },
+        },
+      },
+      {
+        $sort: { total: 1 }, // Sort by ascending order for best agents
+      },
+      {
+        $project: {
+          _id: 0,
+          agentId: '$_id',
+          agentName: 1,
+          total: 1,
+        },
+      },
+    ]);
 
-    console.log('Sorted agents:', sortedAgents);
+    console.log('Sorted agents:', logs);
 
     return {
-      bestAgents: sortedAgents.slice(0, 5),
-      worstAgents: sortedAgents.slice(-5).reverse(),
+      bestAgents: logs.slice(0, 5), // Lowest scores are best
+      worstAgents: logs.slice(-5).reverse(), // Highest scores are worst
     };
   } catch (error) {
     console.error(`Error fetching daily rankings: ${error.message}`);
     throw error;
   }
 };
+
 
 module.exports = {
   getAgentSmartListCounts,

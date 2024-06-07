@@ -130,7 +130,8 @@ app.get('/api/daily-rankings', async (req, res) => {
     const rankings = await getDailyRankings();
     res.json(rankings);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error in /api/daily-rankings route:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
