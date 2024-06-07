@@ -48,9 +48,9 @@ const Scoreboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {rankings.bestAgents.length > 0 ? (
-                  rankings.bestAgents.map((agent, index) => (
-                    <tr key={agent.agentId} className="border-b border-gray-200 hover:bg-gray-100 transition duration-300">
+  {rankings.bestAgents.length > 0 ? (
+    rankings.bestAgents.map((agent, index) => (
+      <tr key={`${agent.agentId}-best-${index}`} className="border-b border-gray-200 hover:bg-gray-100 transition duration-300">
                       <td className="py-4 px-6 text-center">{index + 1}</td>
                       <td className="py-4 px-6 text-center">{agent.agentName}</td>
                       <td className="py-4 px-6 text-center">{agent.total}</td>
@@ -75,9 +75,9 @@ const Scoreboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {rankings.worstAgents.length > 0 ? (
-                  rankings.worstAgents.map((agent, index) => (
-                    <tr key={agent.agentId} className="border-b border-gray-200 hover:bg-gray-100 transition duration-300">
+  {rankings.worstAgents.length > 0 ? (
+    rankings.worstAgents.map((agent, index) => (
+      <tr key={`${agent.agentId}-worst-${index}`} className="border-b border-gray-200 hover:bg-gray-100 transition duration-300">
                       <td className="py-4 px-6 text-center">{index + 1}</td>
                       <td className="py-4 px-6 text-center">{agent.agentName}</td>
                       <td className="py-4 px-6 text-center">{agent.total}</td>

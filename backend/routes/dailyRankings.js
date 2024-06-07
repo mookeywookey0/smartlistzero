@@ -16,29 +16,45 @@ router.get('/daily-rankings', async (req, res) => {
     const nextDate = new Date(latestDate);
     nextDate.setDate(latestDate.getDate() + 1);
 
-    // Fetch all logs for the latest date
-    const logs = await DailyLog.find({ date: { $gte: latestDate, $lt: nextDate } });
+    // Fetch all logs for the latest date using aggregation
+    const logs = await DailyLog.aggregate([
+      {
+        $match: {
+          date: { $gte: latestDate, $lt: nextDate },
+        },
+      },
+      {
+        $project: {
+          agentId: 1,
+          agentName: 1,
+          total: { $sum: { $objectToArray: '$smartListCounts.v' } },
+        },
+      },
+      {
+        $group: {
+          _id: '$agentId',
+          agentName: { $first: '$agentName' },
+          total: { $sum: '$total' },
+        },
+      },
+      {
+        $sort: { total: 1 }, // Sort by ascending order for best agents
+      },
+      {
+        $project: {
+          _id: 0,
+          agentId: '$_id',
+          agentName: 1,
+          total: 1,
+        },
+      },
+    ]);
 
-    const agentMap = new Map();
-
-    logs.forEach(log => {
-      const total = Object.values(log.smartListCounts).reduce((sum, count) => sum + count, 0);
-      const agentId = log.agentId;
-      const agentName = log.agentName;
-      if (!agentMap.has(agentId)) {
-        agentMap.set(agentId, { agentId, agentName, total });
-      } else {
-        agentMap.get(agentId).total += total;
-      }
-    });
-
-    const sortedAgents = Array.from(agentMap.values()).sort((a, b) => a.total - b.total); // Sort in ascending order
-
-    console.log('Sorted agents:', sortedAgents);
+    console.log('Sorted agents:', logs);
 
     return res.json({
-      bestAgents: sortedAgents.slice(0, 5),
-      worstAgents: sortedAgents.slice(-5).reverse(),
+      bestAgents: logs.slice(0, 5), // Lowest scores are best
+      worstAgents: logs.slice(-5).reverse(), // Highest scores are worst
     });
   } catch (error) {
     console.error('Error fetching daily rankings:', error);
