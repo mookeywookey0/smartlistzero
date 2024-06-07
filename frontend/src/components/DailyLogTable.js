@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { CSVLink } from 'react-csv';
-import { Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
@@ -42,7 +42,7 @@ const DailyLogTable = () => {
   }, []);
 
   const handleClearLogs = async () => {
-    if (window.confirm('Are you sure you want to clear the daily logs?')) {
+    if (window.confirm('Are you sure you want to clear the daily logs? You will lose your data.')) {
       try {
         await axios.delete(`${API_BASE_URL}/api/daily-logs`);
         setDailyLogs([]);
@@ -60,17 +60,34 @@ const DailyLogTable = () => {
     navigate('/scoreboard');
   };
 
+  const groupedData = dailyLogs.reduce((acc, log) => {
+    const date = new Date(log.date).toLocaleDateString();
+    if (!acc[log.agentName]) {
+      acc[log.agentName] = { dates: [], totals: [] };
+    }
+    acc[log.agentName].dates.push(date);
+    acc[log.agentName].totals.push(log.total);
+    return acc;
+  }, {});
+
+  const colors = [
+    'rgba(75, 192, 192, 0.6)',
+    'rgba(255, 99, 132, 0.6)',
+    'rgba(54, 162, 235, 0.6)',
+    'rgba(255, 206, 86, 0.6)',
+    'rgba(75, 192, 192, 1)',
+  ];
+
   const data = {
-    labels: dailyLogs.map(log => log.agentName),
-    datasets: [
-      {
-        label: 'Total Leads',
-        data: dailyLogs.map(log => log.total),
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-      },
-    ],
+    labels: [...new Set(dailyLogs.map(log => new Date(log.date).toLocaleDateString()))],
+    datasets: Object.entries(groupedData).map(([agentName, { dates, totals }], index) => ({
+      label: agentName,
+      data: totals,
+      backgroundColor: colors[index % colors.length],
+      borderColor: colors[index % colors.length].replace('0.6', '1'),
+      borderWidth: 1,
+      fill: false,
+    })),
   };
 
   return (
@@ -113,7 +130,7 @@ const DailyLogTable = () => {
             </CSVLink>
           </div>
           <div className="overflow-x-auto mb-6">
-            <Bar data={data} options={{ maintainAspectRatio: false }} height={400} />
+            <Line data={data} options={{ maintainAspectRatio: false }} height={400} />
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white rounded-lg shadow-lg">
