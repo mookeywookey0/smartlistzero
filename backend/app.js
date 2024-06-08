@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
 const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
+const columnOrderRoutes = require('./routes/columnOrder'); // Import the columnOrder routes
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -143,6 +144,8 @@ app.delete('/api/daily-logs', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.use('/api', columnOrderRoutes); // Use the columnOrder routes
 
 schedule.scheduleJob('0 4 * * *', async () => {
   try {
