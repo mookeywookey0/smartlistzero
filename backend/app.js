@@ -152,15 +152,17 @@ schedule.scheduleJob('0 4 * * *', async () => {
     const { agentIds, smartListIds } = await fetchSelections();
     const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
 
+    // Set the date for the log entry to the current date at 00:00:00
     const currentDate = new Date();
-    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+    currentDate.setHours(0, 0, 0, 0); // Ensure the date is set to the start of the day
 
-    await DailyLog.deleteMany({ date: { $gte: startOfDay } });
+    // Delete existing logs for the current date
+    await DailyLog.deleteMany({ date: { $gte: currentDate } });
 
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
       const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
       const logEntry = {
-        date: new Date(),
+        date: currentDate, // Set the date to the start of the current day
         agentId,
         agentName: countsData.agentMap[agentId],
         smartListCounts: { ...smartListCounts }, // Ensure it's a plain object
