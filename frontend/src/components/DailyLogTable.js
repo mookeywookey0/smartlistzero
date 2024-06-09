@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { CSVLink } from 'react-csv';
 import { Line } from 'react-chartjs-2';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import Modal from 'react-modal';
 import 'chart.js/auto';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import '../App.css'; // Import the CSS file
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
 const USER_ID = '123'; // Replace with actual user ID
@@ -49,7 +52,7 @@ const DraggableColumn = ({ id, children, moveColumn, findColumn, frozen }) => {
   };
 
   return (
-    <th ref={refCallback} style={{ opacity }} className="py-3 px-6 bg-gray-800 text-white text-center text-xl">
+    <th ref={refCallback} style={{ opacity }} className="column">
       {children}
     </th>
   );
@@ -60,9 +63,14 @@ const DailyLogTable = () => {
   const [smartListMap, setSmartListMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState([]);
-  const navigate = useNavigate();
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    Modal.setAppElement('#root'); // Set the app element for accessibility
+
     const fetchDailyLogs = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/daily-logs`);
@@ -145,26 +153,50 @@ const DailyLogTable = () => {
     }
   };
 
+  const openModal = () => setModalIsOpen(true);
+  const closeModal = () => setModalIsOpen(false);
+
   const handleClearLogs = async () => {
-    if (window.confirm('Are you sure you want to clear the daily logs? You will lose your data.')) {
-      try {
-        await axios.delete(`${API_BASE_URL}/api/daily-logs`);
-        setDailyLogs([]);
-      } catch (error) {
-        console.error('Error clearing daily logs:', error);
-      }
+    closeModal();
+    try {
+      await axios.delete(`${API_BASE_URL}/api/daily-logs`);
+      setDailyLogs([]);
+    } catch (error) {
+      console.error('Error clearing daily logs:', error);
     }
   };
 
-  const handleBackToSelection = () => {
-    navigate('/');
+  const handleDateChange = useCallback(async () => {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/daily-logs`, {
+        params: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        },
+      });
+      setDailyLogs(response.data);
+    } catch (error) {
+      console.error('Error fetching logs with date range:', error);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    handleDateChange();
+  }, [startDate, endDate, handleDateChange]);
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
   };
 
-  const handleGoToScoreboard = () => {
-    navigate('/scoreboard');
-  };
+  const filteredLogs = dailyLogs.filter(log =>
+    log.agentName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const groupedData = dailyLogs.reduce((acc, log) => {
+  const groupedData = filteredLogs.reduce((acc, log) => {
     const date = new Date(log.date).toLocaleDateString();
     if (!acc[log.agentName]) {
       acc[log.agentName] = { dates: [], totals: [] };
@@ -183,10 +215,10 @@ const DailyLogTable = () => {
   ];
 
   const data = {
-    labels: [...new Set(dailyLogs.map(log => new Date(log.date).toLocaleDateString()))],
+    labels: [...new Set(filteredLogs.map(log => new Date(log.date).toLocaleDateString()))].reverse(),
     datasets: Object.entries(groupedData).map(([agentName, { dates, totals }], index) => ({
       label: agentName,
-      data: totals,
+      data: totals.reverse(),
       backgroundColor: colors[index % colors.length],
       borderColor: colors[index % colors.length].replace('0.6', '1'),
       borderWidth: 1,
@@ -196,49 +228,73 @@ const DailyLogTable = () => {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="p-6">
-        <h1 className="text-4xl font-bold mb-6 text-center">Daily Log</h1>
+      <div className="main-container">
+        <h1 className="heading">Daily Log</h1>
         {loading ? (
-          <div className="text-center">Loading...</div>
+          <div className="loading-indicator">Loading...</div>
         ) : (
           <>
-            <div className="flex justify-between mb-6">
+            <div className="button-container">
               <button
-                onClick={handleBackToSelection}
-                className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-300"
-              >
-                Back to Selection
-              </button>
-              <button
-                onClick={handleGoToScoreboard}
-                className="px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
-              >
-                Go to Scoreboard
-              </button>
-              <button
-                onClick={handleClearLogs}
-                className="px-6 py-3 bg-red-500 text-white rounded hover:bg-red-600 transition duration-300"
+                onClick={openModal}
+                className="clear-button"
               >
                 Clear Daily Logs
               </button>
               <CSVLink
-                data={dailyLogs.map(log => ({
+                data={filteredLogs.map(log => ({
                   date: new Date(log.date).toLocaleDateString(),
                   agentName: log.agentName,
                   ...log.smartListCounts,
                   total: log.total,
                 }))}
                 filename="daily_logs.csv"
-                className="px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
+                className="csv-button"
               >
                 Export CSV
               </CSVLink>
             </div>
-            <div className="overflow-x-auto mb-6">
+            <div className="date-picker-container">
+              <div className="date-picker-label">
+                <label>Start Date: </label>
+                <DatePicker
+                  selected={startDate}
+                  onChange={date => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  isClearable
+                  className="date-picker"
+                  placeholderText="Select start date"
+                />
+              </div>
+              <div className="date-picker-label">
+                <label>End Date: </label>
+                <DatePicker
+                  selected={endDate}
+                  onChange={date => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate}
+                  isClearable
+                  className="date-picker"
+                  placeholderText="Select end date"
+                />
+              </div>
+            </div>
+            <input
+              type="text"
+              placeholder="Search agents..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="search-input p-2 border border-gray-300 rounded mb-4 w-full"
+            />
+            <div className="chart-container">
               <Line data={data} options={{ maintainAspectRatio: false }} height={400} />
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow-lg">
+            <div className="table-container">
+              <table className="table">
                 <thead>
                   <tr>
                     {columns.map((column) => (
@@ -255,10 +311,10 @@ const DailyLogTable = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {dailyLogs.map(log => (
+                  {filteredLogs.map(log => (
                     <tr key={log._id} className="border-b border-gray-200 hover:bg-gray-100 transition duration-300">
                       {columns.map((column) => (
-                        <td key={`${log._id}-${column.id}`} className="py-4 px-6 text-center">
+                        <td key={`${log._id}-${column.id}`} className="py-4 px-6 text-center text-sm">
                           {column.id === 'date'
                             ? new Date(log.date).toLocaleDateString()
                             : column.id === 'agentName'
@@ -275,6 +331,29 @@ const DailyLogTable = () => {
             </div>
           </>
         )}
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          className="modal-content"
+          overlayClassName="modal-overlay"
+        >
+          <h2 className="modal-header">Confirm Clear Logs</h2>
+          <p>Are you sure you want to clear the daily logs? This action cannot be undone.</p>
+          <div className="modal-buttons">
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition duration-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleClearLogs}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
+            >
+              Clear Logs
+            </button>
+          </div>
+        </Modal>
       </div>
     </DndProvider>
   );
