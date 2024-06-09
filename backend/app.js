@@ -1,18 +1,30 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Ensure path is required before dotenv
+const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
+const moment = require('moment-timezone');
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
-const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
-const columnOrderRoutes = require('./routes/columnOrder'); // Import the columnOrder routes
+const DailyLog = require('./models/DailyLog');
+const User = require('./models/User');
+const columnOrderRoutes = require('./routes/columnOrder');
+const agentLogsRoutes = require('./routes/agentLogs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// MongoDB connection
+app.use(cors({
+  origin: 'http://localhost:3001',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
@@ -21,7 +33,6 @@ mongoose.connect(mongoURI, {
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-app.use(cors());
 app.use(bodyParser.json());
 
 // API routes
@@ -45,7 +56,6 @@ app.post('/api/selected-counts', async (req, res) => {
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999));
 
-    // Delete existing logs for the current date
     await DailyLog.deleteMany({ date: { $gte: startOfDay, $lte: endOfDay } });
 
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
@@ -54,7 +64,7 @@ app.post('/api/selected-counts', async (req, res) => {
         date: new Date(),
         agentId,
         agentName: countsData.agentMap[agentId],
-        smartListCounts: { ...smartListCounts }, // Ensure it's a plain object
+        smartListCounts: { ...smartListCounts },
         total,
       };
       await saveDailyLog(logEntry);
@@ -145,41 +155,48 @@ app.delete('/api/daily-logs', async (req, res) => {
   }
 });
 
-app.use('/api', columnOrderRoutes); // Use the columnOrder routes
+app.use('/api/agent-logs', agentLogsRoutes);
+app.use('/api', columnOrderRoutes);
 
-schedule.scheduleJob('0 4 * * *', async () => {
-  try {
-    const { agentIds, smartListIds } = await fetchSelections();
-    const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
+// Schedule job for each user
+const scheduleJobsForUsers = async () => {
+  const users = await User.find();
+  users.forEach(user => {
+    const timeZone = user.timeZone || 'UTC'; // Default to UTC if no time zone is set
+    const nextRun = moment.tz(timeZone).startOf('day').add(4, 'hours'); // 4:00 AM in user's time zone
 
-    // Set the date for the log entry to the current date at 00:00:00
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Ensure the date is set to the start of the day
+    schedule.scheduleJob(nextRun.toDate(), async () => {
+      try {
+        const { agentIds, smartListIds } = await fetchSelections();
+        const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
 
-    // Delete existing logs for the current date
-    await DailyLog.deleteMany({ date: { $gte: currentDate } });
+        const currentDate = moment.tz(timeZone).startOf('day').toDate();
 
-    for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
-      const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
-      const logEntry = {
-        date: currentDate, // Set the date to the start of the current day
-        agentId,
-        agentName: countsData.agentMap[agentId],
-        smartListCounts: { ...smartListCounts }, // Ensure it's a plain object
-        total,
-      };
-      await saveDailyLog(logEntry);
-    }
-    console.log('Daily log update completed at 4:00 AM');
-  } catch (error) {
-    console.error('Error during daily log update:', error);
-  }
-});
+        await DailyLog.deleteMany({ date: { $gte: currentDate } });
 
-// Serve static files from the React app
+        for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
+          const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
+          const logEntry = {
+            date: currentDate,
+            agentId,
+            agentName: countsData.agentMap[agentId],
+            smartListCounts: { ...smartListCounts },
+            total,
+          };
+          await saveDailyLog(logEntry);
+        }
+        console.log(`Daily log update completed at 4:00 AM for user ${user.name} in ${timeZone}`);
+      } catch (error) {
+        console.error(`Error during daily log update for user ${user.name}:`, error);
+      }
+    });
+  });
+};
+
+scheduleJobsForUsers();
+
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
