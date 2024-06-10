@@ -5,26 +5,28 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
-const moment = require('moment-timezone');
+const moment = require('moment-timezone'); // Add moment-timezone
 const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
 const DailyLog = require('./models/DailyLog');
-const User = require('./models/User');
 const columnOrderRoutes = require('./routes/columnOrder');
 const agentLogsRoutes = require('./routes/agentLogs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Enable CORS
 app.use(cors({
-  origin: 'http://localhost:3001',
+  origin: 'http://localhost:3001', // Replace with your frontend URL
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// Middleware
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
@@ -56,6 +58,7 @@ app.post('/api/selected-counts', async (req, res) => {
     const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999));
 
+    // Delete existing logs for the current date
     await DailyLog.deleteMany({ date: { $gte: startOfDay, $lte: endOfDay } });
 
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
@@ -155,47 +158,35 @@ app.delete('/api/daily-logs', async (req, res) => {
   }
 });
 
-app.use('/api/agent-logs', agentLogsRoutes);
-app.use('/api', columnOrderRoutes);
+app.use('/api/agent-logs', agentLogsRoutes); // Use the agentLogs routes
+app.use('/api', columnOrderRoutes); // Use the columnOrder routes
 
-// Schedule job for each user
-const scheduleJobsForUsers = async () => {
-  const users = await User.find();
-  users.forEach(user => {
-    const timeZone = user.timeZone || 'UTC'; // Default to UTC if no time zone is set
-    const nextRun = moment.tz(timeZone).startOf('day').add(4, 'hours'); // 4:00 AM in user's time zone
+schedule.scheduleJob('0 4 * * *', async () => {
+  try {
+    const { agentIds, smartListIds } = await fetchSelections();
+    const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
 
-    schedule.scheduleJob(nextRun.toDate(), async () => {
-      try {
-        const { agentIds, smartListIds } = await fetchSelections();
-        const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
 
-        const currentDate = moment.tz(timeZone).startOf('day').toDate();
+    await DailyLog.deleteMany({ date: { $gte: currentDate } });
 
-        await DailyLog.deleteMany({ date: { $gte: currentDate } });
-
-        for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
-          const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
-          const logEntry = {
-            date: currentDate,
-            agentId,
-            agentName: countsData.agentMap[agentId],
-            smartListCounts: { ...smartListCounts },
-            total,
-          };
-          await saveDailyLog(logEntry);
-        }
-        console.log(`Daily log update completed at 4:00 AM for user ${user.name} in ${timeZone}`);
-      } catch (error) {
-        console.error(`Error during daily log update for user ${user.name}:`, error);
-      }
-    });
-  });
-};
-
-scheduleJobsForUsers();
-
-//force rebuilt
+    for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
+      const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
+      const logEntry = {
+        date: currentDate,
+        agentId,
+        agentName: countsData.agentMap[agentId],
+        smartListCounts: { ...smartListCounts },
+        total,
+      };
+      await saveDailyLog(logEntry);
+    }
+    console.log('Daily log update completed at 4:00 AM');
+  } catch (error) {
+    console.error('Error during daily log update:', error);
+  }
+});
 
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
@@ -206,3 +197,5 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+// Force rebuild
