@@ -136,3 +136,4 @@ backend/.DS_Store
 # Ignore driveupload directory
 frontend/.tmp.driveupload/
 
+backend/.tmp.driveupload/
