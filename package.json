@@ -2,21 +2,18 @@
   "name": "slz-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "node backend/app.js",
-    "heroku-postbuild": "cd frontend && npm install && npm run build"
+    "start": "node app.js"
   },
   "dependencies": {
+    "debug": "^4.3.2",
     "express": "^4.17.1",
-    "mongoose": "^5.13.7",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-scripts": "4.0.3"
+    "mongoose": "^5.13.7"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": "18.17.0",
     "npm": ">=7.0.0"
   }
 }

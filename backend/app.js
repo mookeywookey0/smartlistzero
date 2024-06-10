@@ -1,28 +1,49 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Ensure path is required before dotenv
+const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
-const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
-const DailyLog = require('./models/DailyLog'); // Correct path for DailyLog
-const columnOrderRoutes = require('./routes/columnOrder'); // Import the columnOrder routes
+const moment = require('moment-timezone');
+
+const {
+  getAgentSmartListCounts,
+  fetchAgents,
+  fetchSmartLists,
+  fetchDailyLogs,
+  saveSelections,
+  fetchSelections,
+  saveDailyLog,
+  getDailyRankings
+} = require('./fetchData');
+
+const DailyLog = require('./models/DailyLog');
+const columnOrderRoutes = require('./routes/columnOrder');
+const agentLogsRoutes = require('./routes/agentLogs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Enable CORS
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Middleware
+app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // MongoDB connection
-const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
-mongoose.connect(mongoURI, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
-
-app.use(cors());
-app.use(bodyParser.json());
 
 // API routes
 app.get('/api/agent-smartlist-counts', async (req, res) => {
@@ -54,7 +75,7 @@ app.post('/api/selected-counts', async (req, res) => {
         date: new Date(),
         agentId,
         agentName: countsData.agentMap[agentId],
-        smartListCounts: { ...smartListCounts }, // Ensure it's a plain object
+        smartListCounts: { ...smartListCounts },
         total,
       };
       await saveDailyLog(logEntry);
@@ -145,6 +166,7 @@ app.delete('/api/daily-logs', async (req, res) => {
   }
 });
 
+app.use('/api/agent-logs', agentLogsRoutes); // Use the agentLogs routes
 app.use('/api', columnOrderRoutes); // Use the columnOrder routes
 
 schedule.scheduleJob('0 4 * * *', async () => {
@@ -153,17 +175,17 @@ schedule.scheduleJob('0 4 * * *', async () => {
     const countsData = await getAgentSmartListCounts(agentIds, smartListIds);
 
     const currentDate = new Date();
-    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+    currentDate.setHours(0, 0, 0, 0);
 
-    await DailyLog.deleteMany({ date: { $gte: startOfDay } });
+    await DailyLog.deleteMany({ date: { $gte: currentDate } });
 
     for (const [agentId, smartListCounts] of Object.entries(countsData.counts)) {
       const total = Object.values(smartListCounts).reduce((a, b) => a + b, 0);
       const logEntry = {
-        date: new Date(),
+        date: currentDate,
         agentId,
         agentName: countsData.agentMap[agentId],
-        smartListCounts: { ...smartListCounts }, // Ensure it's a plain object
+        smartListCounts: { ...smartListCounts },
         total,
       };
       await saveDailyLog(logEntry);
@@ -174,10 +196,8 @@ schedule.scheduleJob('0 4 * * *', async () => {
   }
 });
 
-// Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// The "catchall" handler: for any request that doesn't match one above, send back React's index.html file.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
