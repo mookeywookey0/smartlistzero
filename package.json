@@ -18,7 +18,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=16.x",
     "npm": ">=7.0.0"
   }
 }
