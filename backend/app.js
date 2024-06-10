@@ -6,13 +6,35 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const moment = require('moment-timezone'); // Add moment-timezone
-const { getAgentSmartListCounts, fetchAgents, fetchSmartLists, fetchDailyLogs, saveSelections, fetchSelections, saveDailyLog, getDailyRankings } = require('./fetchData');
+
+const {
+  getAgentSmartListCounts,
+  fetchAgents,
+  fetchSmartLists,
+  fetchDailyLogs,
+  saveSelections,
+  fetchSelections,
+  saveDailyLog,
+  getDailyRankings
+} = require('./fetchData');
+
 const DailyLog = require('./models/DailyLog');
 const columnOrderRoutes = require('./routes/columnOrder');
 const agentLogsRoutes = require('./routes/agentLogs');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Log installed packages
+const fs = require('fs');
+const nodeModulesPath = path.resolve(__dirname, 'node_modules');
+fs.readdir(nodeModulesPath, (err, files) => {
+  if (err) {
+    console.error('Unable to scan directory:', err);
+  } else {
+    console.log('Node modules:', files);
+  }
+});
 
 // Enable CORS
 app.use(cors({
@@ -34,8 +56,6 @@ mongoose.connect(mongoURI, {
 })
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
-
-app.use(bodyParser.json());
 
 // API routes
 app.get('/api/agent-smartlist-counts', async (req, res) => {
@@ -198,4 +218,5 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
 
-// Force rebuild -
+// Force rebuild - Include this to force a rebuild in Heroku
+console.log('App.js rebuild for Heroku');
