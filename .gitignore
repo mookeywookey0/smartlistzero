@@ -133,6 +133,13 @@ dist
 .DS_Store
 backend/.DS_Store
 
+<<<<<<< HEAD
 # Temporary upload files
 frontend/.tmp.driveupload/
 
+=======
+# Ignore driveupload directory
+frontend/.tmp.driveupload/
+
+backend/.tmp.driveupload/
+>>>>>>> 6463cbc08d9fbeb70d2b6c46c3a53d1081ecf807

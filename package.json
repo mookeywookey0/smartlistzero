@@ -5,9 +5,19 @@
     "start": "node app.js"
   },
   "dependencies": {
+<<<<<<< HEAD
     "debug": "^4.3.2",
     "express": "^4.17.1",
     "mongoose": "^5.13.7"
+=======
+    "cors": "^2.8.5",
+    "debug": "^4.3.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.17.1",
+    "moment-timezone": "^0.5.45",
+    "mongoose": "^5.13.7",
+    "node-schedule": "^2.1.1"
+>>>>>>> 6463cbc08d9fbeb70d2b6c46c3a53d1081ecf807
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
