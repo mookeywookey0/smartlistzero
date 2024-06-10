@@ -5,6 +5,7 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "axios": "^0.21.1",
     "debug": "^4.3.2",
     "express": "^4.17.1",
     "mongoose": "^5.13.7",
