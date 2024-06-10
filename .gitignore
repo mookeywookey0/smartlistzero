@@ -263,3 +263,4 @@ dist
 >>>>>>> 788e381fdbd5306fb1323523cf147356e39dc5bb
 .DS_Store
 backend/.DS_Store
+frontend/.tmp.driveupload/
