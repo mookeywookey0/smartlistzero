@@ -5,7 +5,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
-const moment = require('moment-timezone'); // Add moment-timezone
+const moment = require('moment-timezone');
 
 const {
   getAgentSmartListCounts,
@@ -25,20 +25,9 @@ const agentLogsRoutes = require('./routes/agentLogs');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Log installed packages
-const fs = require('fs');
-const nodeModulesPath = path.resolve(__dirname, 'node_modules');
-fs.readdir(nodeModulesPath, (err, files) => {
-  if (err) {
-    console.error('Unable to scan directory:', err);
-  } else {
-    console.log('Node modules:', files);
-  }
-});
-
 // Enable CORS
 app.use(cors({
-  origin: 'http://localhost:3001', // Replace with your frontend URL
+  origin: process.env.FRONTEND_URL,
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -49,8 +38,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB connection
-const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/slz-app';
-mongoose.connect(mongoURI, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -217,6 +205,3 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
-
-// Force rebuild - Include this to force a rebuild in Heroku
-console.log('App.js rebuild for Heroku');
